@@ -1,5 +1,5 @@
 {
-  "name": "nemo",
+  "name": "nemo-runner",
   "version": "4.2.2",
   "description": "Wrapper to run mocha suites with injected selenium-webdriver instance",
   "main": "index.js",
