@@ -1,10 +1,12 @@
 'use strict';
 
-var Util = require('localizedtestdata');
+
+var localizedTextData = require('localizedtestdata');
+var allLocales = localizedTextData.Locales;
+var Util = localizedTextData.Util;
 
 
 const readFile = require('./fileHandler.js').readFileSynchronously;
-const allLocales = require('./locales')
 
 const setupUser = (user, localeData, locale) => {
 
