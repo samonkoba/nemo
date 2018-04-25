@@ -33,12 +33,45 @@ const setupUser = (user, localeData, locale) => {
     defaultUser.firstName = localeData.firstName || Util.getFirstName(country);
     defaultUser.lastName = localeData.lastName || Util.getLastName(country);
     defaultUser.preferredLanguage = localeData.preferredLanguage || allLocales[defaultUser.locale].language;
-    if (defaultUser.type.toLowerCase() === 'BUSINESS'.toLowerCase()) {
-        defaultUser.businessType =
-            localeData.businessType || Util.getBusinessType(country);
+    if (defaultUser.type.toLowerCase() === Util.BUSINESS.toLowerCase()) {
+        defaultUser.businessType = localeData.businessType || Util.getBusinessType(country);
         defaultUser.businessName = localeData.businessName || Util.getFirmName(country);
         defaultUser.bizUrl = localeData.bizUrl || Util.getBusinessUrl(country);
+
+        defaultUser.bizAddressOne = localeData.bizAddressOne || Util.getBusinessAddress(country,'street1');
+        defaultUser.bizCity = localeData.bizCity || Util.getBusinessAddress(country,'city');
+        defaultUser.bizCountry = localeData.bizCountry || defaultUser.bizCountry;
+        defaultUser.bizMonEstablished = localeData.bizMonEstablished || defaultUser.bizMonEstablished;
+        defaultUser.bizState = localeData.bizState || Util.getBusinessAddress(country,'state');
+        defaultUser.bizCustomerServEmail = localeData.bizCustomerServEmail || defaultUser.bizCustomerServEmail;
+        defaultUser.bizCSPhone = localeData.bizCSPhone || defaultUser.bizCSPhone;
+        defaultUser.bizYearEstablished = localeData.bizYearEstablished || defaultUser.bizYearEstablished;
+        defaultUser.bizZip = localeData.bizZip || Util.getBusinessAddress(country,'zip');
+        defaultUser.industry = localeData.industry || defaultUser.industry;
     }
+
+
+
+    defaultUser.mcc = localeData.mcc || defaultUser.mcc;
+    defaultUser.citizenship = localeData.citizenship || defaultUser.citizenship;
+    defaultUser.confirmEmail = localeData.confirmEmail || defaultUser.confirmEmail;
+    defaultUser.unConfirmedPhone = localeData.unConfirmedPhone || defaultUser.unConfirmedPhone;
+    defaultUser.emailAddress = localeData.emailAddress || defaultUser.emailAddress;
+    defaultUser.homeAddress1 = localeData.homeAddress1 || Util.getPersonalAddress(country,'street1');
+    defaultUser.homeAddress2 = localeData.homeAddress2 || Util.getPersonalAddress(country,'street2');
+    defaultUser.homeCity = localeData.homeCity || Util.getPersonalAddress(country,'city');
+    defaultUser.homeCountry = localeData.homeCountry || defaultUser.homeCountry;
+    defaultUser.homePhoneNumber = localeData.homePhoneNumber || defaultUser.homePhoneNumber;
+    defaultUser.homeState = localeData.homeState || Util.getPersonalAddress(country,'state');
+    defaultUser.homeZip = localeData.homeZip || Util.getPersonalAddress(country,'zip');
+    defaultUser.mobilePhone = localeData.mobilePhone || defaultUser.mobilePhone;
+    defaultUser.securityAnswer1 = localeData.securityAnswer1 || defaultUser.securityAnswer1;
+    defaultUser.securityAnswer2 = localeData.securityAnswer2 || defaultUser.securityAnswer2;
+    defaultUser.securityQuestion1 = localeData.securityQuestion1 || defaultUser.securityQuestion1;
+    defaultUser.securityQuestion2 = localeData.securityQuestion2 || defaultUser.securityQuestion2;
+    defaultUser.emailPrefix = localeData.emailPrefix || defaultUser.emailPrefix;
+    defaultUser.dateOfBirth = localeData.dateOfBirth || defaultUser.dateOfBirth;
+
 
     return defaultUser;
 };
@@ -83,6 +116,38 @@ const getLocalizedTestData = (testData, urls) => {
         tests.sender.bankaccounts = tests.receiver.bankaccounts = [];
         tests.sender.preferredLanguage = tests.receiver.preferredLanguage = 'en_US';
 
+
+        tests.sender.bizAddressOne = tests.receiver.bizAddressOne = '';
+        tests.sender.bizCity = tests.receiver.bizCity = '';
+        tests.sender.bizCountry = tests.receiver.bizCountry = '';
+        tests.sender.bizMonEstablished = tests.receiver.bizMonEstablished = 0;
+        tests.sender.bizState = tests.receiver.bizState = '';
+        tests.sender.bizCustomerServEmail = tests.receiver.bizCustomerServEmail = '';
+        tests.sender.bizCSPhone = tests.receiver.bizCSPhone = '';
+        tests.sender.bizYearEstablished = tests.receiver.bizYearEstablished = 0;
+        tests.sender.bizZip = tests.receiver.bizZip = '';
+        tests.sender.industry = tests.receiver.industry = 0;
+        tests.sender.mcc = tests.receiver.mcc = 0;
+        tests.sender.citizenship = tests.receiver.citizenship = '';
+        tests.sender.confirmEmail = tests.receiver.confirmEmail = false;
+        tests.sender.unConfirmedPhone = tests.receiver.unConfirmedPhone = false;
+        tests.sender.emailAddress = tests.receiver.emailAddress = '';
+        tests.sender.homeAddress1 = tests.receiver.homeAddress1 = '';
+        tests.sender.homeAddress2 = tests.receiver.homeAddress2 = '';
+        tests.sender.homeCity = tests.receiver.homeCity = '';
+        tests.sender.homeCountry = tests.receiver.homeCountry = '';
+        tests.sender.homePhoneNumber = tests.receiver.homePhoneNumber = '';
+        tests.sender.homeState = tests.receiver.homeState = '';
+        tests.sender.homeZip = tests.receiver.homeZip = '';
+        tests.sender.mobilePhone = tests.receiver.mobilePhone = '';
+        tests.sender.securityAnswer1 = tests.receiver.securityAnswer1 = '';
+        tests.sender.securityAnswer2 = tests.receiver.securityAnswer2 = '';
+        tests.sender.securityQuestion1 = tests.receiver.securityQuestion1 = 0;
+        tests.sender.securityQuestion2 = tests.receiver.securityQuestion2 = 0;
+        tests.sender.emailPrefix = tests.receiver.emailPrefix = '';
+        tests.sender.dateOfBirth = tests.receiver.dateOfBirth = '';
+
+
         let locales = [];
         locales = multilocales.split(",");
         let tempTests = {};
@@ -110,7 +175,7 @@ const getLocalizedTestData = (testData, urls) => {
  *
  *  getTestsData("test_amount_property_file",'bizwalletnodeweb/transferMoney.json')
  */
-const getTestsData = (testCaseName, dataProviderFile, urls,singleLocale) => {
+const getTestsData = (testCaseName, dataProviderFile, urls, singleLocale) => {
     let testData = {}
     try {
         testData = JSON.parse(
@@ -143,9 +208,6 @@ const getTestsData = (testCaseName, dataProviderFile, urls,singleLocale) => {
         )
 
     }
-
-
-
 
 
     testDescription.testName = testName;
@@ -185,10 +247,21 @@ const getTestsDataByCountry = (testCaseName, dataProviderFile, locales, urls) =>
 
     //add locales requested but are not in data provider
     locales.forEach(function (locale) {
+        let addAsNewLocale = true;
         if (!testDescription.locales.hasOwnProperty(locale)) {
-            testDescription.locales[locale] = {};
-            testDescription.locales[locale].sender = {};
-            testDescription.locales[locale].receiver = {};
+            Object.keys(testDescription.locales).every(function (testDescLocale, index) {
+                if (testDescLocale.includes(locale)) {
+                    addAsNewLocale = false;
+                }
+
+                return addAsNewLocale;
+            })
+
+            if (addAsNewLocale) {
+                testDescription.locales[locale] = {};
+                testDescription.locales[locale].sender = {};
+                testDescription.locales[locale].receiver = {};
+            }
         }
     });
 
