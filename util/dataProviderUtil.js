@@ -2,75 +2,178 @@
 
 
 var localizedTextData = require('localizedtestdata');
-var allLocales = localizedTextData.Locales;
+var existingLocales = localizedTextData.Locales;
 var Util = localizedTextData.Util;
 
 
 const readFile = require('./fileHandler.js').readFileSynchronously;
 
+
+/*
+ * The getTestDataByCountry method reads all the tests at a given dataprovider file, filters the tests that needs to be executed by the locale provided in the parameters
+ * and returns the final set of tests that need to be executed.
+ * @param  {array} locales  requested locales
+ * @param {json} testDescription    test description with data and defaul
+ *
+ *
+ *  getTestsData("test_amount_property_file",'bizwalletnodeweb/transferMoney.json',['US','FR'])
+ */
+const filterLocales = (locales, testDescription) => {
+    Object.keys(testDescription.locales).forEach(
+        function (locale) {
+            let requestedLocales = '';
+            locales.forEach(function (filteredLocale) {
+                if (locale.includes(filteredLocale)) {
+                    requestedLocales = requestedLocales + (',' + filteredLocale);
+                }
+            });
+
+            requestedLocales = requestedLocales.substring(1);
+            if (requestedLocales.length > 0) {
+                if (!testDescription.locales.hasOwnProperty(requestedLocales)) {
+                    testDescription.locales[requestedLocales] = testDescription.locales[locale];
+                }
+            }
+            if (requestedLocales !== locale) {
+                delete testDescription.locales[locale];
+            }
+        }
+    );
+};
+
 const setupUser = (user, localeData, locale) => {
 
-    let country = localeData.hasOwnProperty('locale') ?
-        (allLocales.hasOwnProperty(localeData.locale) ? allLocales[localeData.locale].country : console.log('\n\n Locale ' + locale + ' was not found \n\n')) :
-        (allLocales.hasOwnProperty(locale) ? allLocales[locale].country : console.log('\n\n Locale ' + locale + ' was not found \n\n'));
+    let localeUserData = new Object;
+    Object.assign(localeUserData, localeData)
+
+    let country = localeUserData.hasOwnProperty('locale') ?
+        (existingLocales.hasOwnProperty(localeUserData.locale) ? existingLocales[localeUserData.locale].country : console.log('\n\n Locale ' + locale + ' was not found \n\n')) :
+        (existingLocales.hasOwnProperty(locale) ? existingLocales[locale].country : console.log('\n\n Locale ' + locale + ' was not found \n\n'));
 
     let defaultUser = {};
     defaultUser.country = country;
     Object.assign(defaultUser, user);
     let bank = {};
+    let creditcard = {};
     let funds = Util.getFund(country);
-    defaultUser.currency = localeData.currency || funds.currency;
-    defaultUser.bankaccounts = localeData.bankaccounts || [bank = Util.getBank(country)];
-    if (!bank) {
-        delete defaultUser.bankaccounts;
+    defaultUser.currency = localeUserData.currency || funds.currency;
+
+    // setting up the banks
+    if (localeUserData.hasOwnProperty('bankaccounts')) {
+        if (localeUserData.bankaccounts.length <= 0) {
+            localeUserData.bankaccounts.push({});
+        }
+
+
+        bank = Util.getBank(country);
+        localeUserData.bankaccounts = localeUserData.bankaccounts.reduce(function (bankaccounts, bankData) {
+            if (Object.keys(bankData).length <= 0) {
+                if (bank) {
+                    bankaccounts.push(bank);
+                }
+            } else {
+                bankaccounts.push(bankData);
+            }
+
+            return bankaccounts;
+        }, []);
+
+        defaultUser.bankaccounts = localeUserData.bankaccounts;
+    } else {
+        defaultUser.bankaccounts = [];
     }
-    defaultUser.funds = localeData.funds || [funds];
-    defaultUser.creditcards = localeData.creditcards || [
-        Util.getCreditCard(country)
-    ];
-    defaultUser.locale = localeData.locale || locale;
-    defaultUser.type = localeData.type || defaultUser.type;
-    defaultUser.firstName = localeData.firstName || Util.getFirstName(country);
-    defaultUser.lastName = localeData.lastName || Util.getLastName(country);
-    defaultUser.preferredLanguage = localeData.preferredLanguage || allLocales[defaultUser.locale].language;
+
+
+    // setting up the funds
+    if (localeUserData.hasOwnProperty('funds')) {
+        if (localeUserData.funds.length <= 0) {
+            localeUserData.funds.push({});
+        }
+
+        localeUserData.funds = localeUserData.funds.reduce(function (fundDatas, fundData) {
+            if (Object.keys(fundData).length <= 0) {
+                if (funds) {
+                    fundDatas.push(funds);
+                }
+            } else {
+                fundDatas.push(fundData);
+            }
+
+            return fundDatas;
+        }, []);
+
+        defaultUser.funds = localeUserData.funds;
+    } else {
+        defaultUser.funds = [];
+    }
+
+
+    // setting up the creditcards
+    if (localeUserData.hasOwnProperty('creditcards')) {
+        if (localeUserData.creditcards.length <= 0) {
+            localeUserData.creditcards.push({});
+        }
+        creditcard = Util.getCreditCard(country);
+        localeUserData.creditcards = localeUserData.creditcards.reduce(function (cardDatas, cardData) {
+            if (Object.keys(cardData).length <= 0) {
+                if (creditcard) {
+                    cardDatas.push(creditcard);
+                }
+            } else {
+                cardDatas.push(cardData);
+            }
+
+            return cardDatas;
+        }, []);
+
+        defaultUser.creditcards = localeUserData.creditcards;
+    } else {
+        defaultUser.creditcards = [];
+    }
+
+
+    defaultUser.locale = localeUserData.locale || locale;
+    defaultUser.type = localeUserData.type || defaultUser.type;
+    defaultUser.firstName = localeUserData.firstName || Util.getFirstName(country);
+    defaultUser.lastName = localeUserData.lastName || Util.getLastName(country);
+    defaultUser.preferredLanguage = localeUserData.preferredLanguage || existingLocales[defaultUser.locale].language;
     if (defaultUser.type.toLowerCase() === Util.BUSINESS.toLowerCase()) {
-        defaultUser.businessType = localeData.businessType || Util.getBusinessType(country);
-        defaultUser.businessName = localeData.businessName || Util.getFirmName(country);
-        defaultUser.bizUrl = localeData.bizUrl || Util.getBusinessUrl(country);
+        defaultUser.businessType = localeUserData.businessType || Util.getBusinessType(country);
+        defaultUser.businessName = localeUserData.businessName || Util.getFirmName(country);
+        defaultUser.bizUrl = localeUserData.bizUrl || Util.getBusinessUrl(country);
 
-        defaultUser.bizAddressOne = localeData.bizAddressOne || Util.getBusinessAddress(country,'street1');
-        defaultUser.bizCity = localeData.bizCity || Util.getBusinessAddress(country,'city');
-        defaultUser.bizCountry = localeData.bizCountry || defaultUser.bizCountry;
-        defaultUser.bizMonEstablished = localeData.bizMonEstablished || defaultUser.bizMonEstablished;
-        defaultUser.bizState = localeData.bizState || Util.getBusinessAddress(country,'state');
-        defaultUser.bizCustomerServEmail = localeData.bizCustomerServEmail || defaultUser.bizCustomerServEmail;
-        defaultUser.bizCSPhone = localeData.bizCSPhone || defaultUser.bizCSPhone;
-        defaultUser.bizYearEstablished = localeData.bizYearEstablished || defaultUser.bizYearEstablished;
-        defaultUser.bizZip = localeData.bizZip || Util.getBusinessAddress(country,'zip');
-        defaultUser.industry = localeData.industry || defaultUser.industry;
+        defaultUser.bizAddressOne = localeUserData.bizAddressOne || Util.getBusinessAddress(country, 'street1');
+        defaultUser.bizCity = localeUserData.bizCity || Util.getBusinessAddress(country, 'city');
+        defaultUser.bizCountry = localeUserData.bizCountry || defaultUser.bizCountry;
+        defaultUser.bizMonEstablished = localeUserData.bizMonEstablished || defaultUser.bizMonEstablished;
+        defaultUser.bizState = localeUserData.bizState || Util.getBusinessAddress(country, 'state');
+        defaultUser.bizCustomerServEmail = localeUserData.bizCustomerServEmail || defaultUser.bizCustomerServEmail;
+        defaultUser.bizCSPhone = localeUserData.bizCSPhone || defaultUser.bizCSPhone;
+        defaultUser.bizYearEstablished = localeUserData.bizYearEstablished || defaultUser.bizYearEstablished;
+        defaultUser.bizZip = localeUserData.bizZip || Util.getBusinessAddress(country, 'zip');
+        defaultUser.industry = localeUserData.industry || defaultUser.industry;
     }
 
 
-
-    defaultUser.mcc = localeData.mcc || defaultUser.mcc;
-    defaultUser.citizenship = localeData.citizenship || defaultUser.citizenship;
-    defaultUser.confirmEmail = localeData.confirmEmail || defaultUser.confirmEmail;
-    defaultUser.unConfirmedPhone = localeData.unConfirmedPhone || defaultUser.unConfirmedPhone;
-    defaultUser.emailAddress = localeData.emailAddress || defaultUser.emailAddress;
-    defaultUser.homeAddress1 = localeData.homeAddress1 || Util.getPersonalAddress(country,'street1');
-    defaultUser.homeAddress2 = localeData.homeAddress2 || Util.getPersonalAddress(country,'street2');
-    defaultUser.homeCity = localeData.homeCity || Util.getPersonalAddress(country,'city');
-    defaultUser.homeCountry = localeData.homeCountry || defaultUser.homeCountry;
-    defaultUser.homePhoneNumber = localeData.homePhoneNumber || defaultUser.homePhoneNumber;
-    defaultUser.homeState = localeData.homeState || Util.getPersonalAddress(country,'state');
-    defaultUser.homeZip = localeData.homeZip || Util.getPersonalAddress(country,'zip');
-    defaultUser.mobilePhone = localeData.mobilePhone || defaultUser.mobilePhone;
-    defaultUser.securityAnswer1 = localeData.securityAnswer1 || defaultUser.securityAnswer1;
-    defaultUser.securityAnswer2 = localeData.securityAnswer2 || defaultUser.securityAnswer2;
-    defaultUser.securityQuestion1 = localeData.securityQuestion1 || defaultUser.securityQuestion1;
-    defaultUser.securityQuestion2 = localeData.securityQuestion2 || defaultUser.securityQuestion2;
-    defaultUser.emailPrefix = localeData.emailPrefix || defaultUser.emailPrefix;
-    defaultUser.dateOfBirth = localeData.dateOfBirth || defaultUser.dateOfBirth;
+    defaultUser.mcc = localeUserData.mcc || defaultUser.mcc;
+    defaultUser.citizenship = localeUserData.citizenship || defaultUser.citizenship;
+    defaultUser.confirmEmail = localeUserData.confirmEmail || defaultUser.confirmEmail;
+    defaultUser.unConfirmedPhone = localeUserData.unConfirmedPhone || defaultUser.unConfirmedPhone;
+    defaultUser.emailAddress = localeUserData.emailAddress || defaultUser.emailAddress;
+    defaultUser.homeAddress1 = localeUserData.homeAddress1 || Util.getPersonalAddress(country, 'street1');
+    defaultUser.homeAddress2 = localeUserData.homeAddress2 || Util.getPersonalAddress(country, 'street2');
+    defaultUser.homeCity = localeUserData.homeCity || Util.getPersonalAddress(country, 'city');
+    defaultUser.homeCountry = localeUserData.homeCountry || defaultUser.homeCountry;
+    defaultUser.homePhoneNumber = localeUserData.homePhoneNumber || defaultUser.homePhoneNumber;
+    defaultUser.homeState = localeUserData.homeState || Util.getPersonalAddress(country, 'state');
+    defaultUser.homeZip = localeUserData.homeZip || Util.getPersonalAddress(country, 'zip');
+    defaultUser.mobilePhone = localeUserData.mobilePhone || defaultUser.mobilePhone;
+    defaultUser.securityAnswer1 = localeUserData.securityAnswer1 || defaultUser.securityAnswer1;
+    defaultUser.securityAnswer2 = localeUserData.securityAnswer2 || defaultUser.securityAnswer2;
+    defaultUser.securityQuestion1 = localeUserData.securityQuestion1 || defaultUser.securityQuestion1;
+    defaultUser.securityQuestion2 = localeUserData.securityQuestion2 || defaultUser.securityQuestion2;
+    defaultUser.emailPrefix = localeUserData.emailPrefix || defaultUser.emailPrefix;
+    defaultUser.dateOfBirth = localeUserData.dateOfBirth || defaultUser.dateOfBirth;
 
 
     return defaultUser;
@@ -92,10 +195,12 @@ const getLocalizedTestData = (testData, urls) => {
         let tests = JSON.parse(JSON.stringify(testData.default));
         let localeData = allLocales[multilocales];
 
-        if (!localeData.hasOwnProperty('sender'))
-            localeData.sender = {}
-        if (!localeData.hasOwnProperty('receiver'))
-            localeData.receiver = {}
+        if (!localeData.hasOwnProperty('sender')) {
+            localeData.sender = {};
+        }
+        if (!localeData.hasOwnProperty('receiver')) {
+            localeData.receiver = {};
+        }
 
         tests.locale = localeData.locale || tests.locale;
         tests.baseUrl = tests.baseUrl || urls.baseUrl;
@@ -149,17 +254,24 @@ const getLocalizedTestData = (testData, urls) => {
 
 
         let locales = [];
-        locales = multilocales.split(",");
+        locales = multilocales.split(',');
         let tempTests = {};
         locales.forEach(function (locale) {
             Object.assign(tempTests, tests);
             tempTests.sender = setupUser(tests.sender, localeData.sender, locale);
             tempTests.receiver = setupUser(tests.receiver, localeData.receiver, locale);
+
+            if (localeData.hasOwnProperty('creditcards')) {
+                tempTests.creditcards = localeData.creditcards;
+            }
+
+            if (localeData.hasOwnProperty('bankaccounts')) {
+                tempTests.bankaccounts = localeData.bankaccounts;
+            }
+
             testsArray[localeData.locale || locale] = {};
             Object.assign(testsArray[localeData.locale || locale], tempTests);
-        })
-
-
+        });
     }
 
 
@@ -176,13 +288,13 @@ const getLocalizedTestData = (testData, urls) => {
  *  getTestsData("test_amount_property_file",'bizwalletnodeweb/transferMoney.json')
  */
 const getTestsData = (testCaseName, dataProviderFile, urls, singleLocale) => {
-    let testData = {}
+    let testData = {};
     try {
         testData = JSON.parse(
             readFile(dataProviderFile));
     } catch (error) {
-        console.log(error)
-        console.error("\n Error in file " + dataProviderFile + "\n")
+        console.log(error);
+        console.error('\n Error in file ' + dataProviderFile + '\n');
     }
 
     let testName = dataProviderFile.replace(/^.*[\\\/]/, '').replace('.json', '');
@@ -194,19 +306,19 @@ const getTestsData = (testCaseName, dataProviderFile, urls, singleLocale) => {
     if (singleLocale) {
         Object.keys(testDescription.locales).forEach(
             function (locale) {
-                let newKeyName = ";"
-                if (locale.includes(","))
+                let newKeyName = ';';
+                if (locale.includes(',')) {
                     newKeyName = locale.substring(0, locale.indexOf(','));
-                else
+                } else {
                     newKeyName = locale;
+                }
 
                 if (!testDescription.locales.hasOwnProperty(newKeyName)) {
                     testDescription.locales[newKeyName] = testDescription.locales[locale];
                     delete testDescription.locales[locale];
                 }
             }
-        )
-
+        );
     }
 
 
@@ -225,13 +337,13 @@ const getTestsData = (testCaseName, dataProviderFile, urls, singleLocale) => {
  *  getTestsData("test_amount_property_file",'bizwalletnodeweb/transferMoney.json',['US','FR'])
  */
 const getTestsDataByCountry = (testCaseName, dataProviderFile, locales, urls) => {
-    let testData = {}
+    let testData = {};
     try {
         testData = JSON.parse(
             readFile(dataProviderFile));
     } catch (error) {
-        console.log(error)
-        console.error("\n Error in file " + dataProviderFile + "\n")
+        console.log(error);
+        console.error('\n Error in file ' + dataProviderFile + '\n');
     }
 
     let testName = dataProviderFile.replace(/^.*[\\\/]/, '').replace('.json', '');
@@ -242,10 +354,10 @@ const getTestsDataByCountry = (testCaseName, dataProviderFile, locales, urls) =>
     }
     testDescription.testName = testName;
 
-    //remove locales not requested
+    // remove locales not requested
     filterLocales(locales, testDescription);
 
-    //add locales requested but are not in data provider
+    // add locales requested but are not in data provider
     locales.forEach(function (locale) {
         let addAsNewLocale = true;
         if (!testDescription.locales.hasOwnProperty(locale)) {
@@ -255,7 +367,7 @@ const getTestsDataByCountry = (testCaseName, dataProviderFile, locales, urls) =>
                 }
 
                 return addAsNewLocale;
-            })
+            });
 
             if (addAsNewLocale) {
                 testDescription.locales[locale] = {};
@@ -268,39 +380,6 @@ const getTestsDataByCountry = (testCaseName, dataProviderFile, locales, urls) =>
 
     return getLocalizedTestData(testDescription, urls);
 };
-
-
-/*
- * The getTestDataByCountry method reads all the tests at a given dataprovider file, filters the tests that needs to be executed by the locale provided in the parameters
- * and returns the final set of tests that need to be executed.
- * @param  {array} locales  requested locales
- * @param {json} testDescription    test description with data and defaul
- *
- *
- *  getTestsData("test_amount_property_file",'bizwalletnodeweb/transferMoney.json',['US','FR'])
- */
-const filterLocales = (locales, testDescription) => {
-
-    Object.keys(testDescription.locales).forEach(
-        function (locale) {
-            let requestedLocales = '';
-            locales.forEach(function (filteredLocale) {
-                if (locale.includes(filteredLocale))
-                    requestedLocales += ',' + filteredLocale;
-            })
-
-            requestedLocales = requestedLocales.substring(1);
-            if (requestedLocales.length > 0) {
-                if (!testDescription.locales.hasOwnProperty(requestedLocales))
-                    testDescription.locales[requestedLocales] = testDescription.locales[locale];
-            }
-            if (requestedLocales !== locale)
-                delete testDescription.locales[locale];
-        }
-    );
-
-
-}
 
 module.exports = {
     getTestsData: getTestsData,
