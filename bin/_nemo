@@ -14,6 +14,7 @@ let debug;
 let log;
 let server;
 let scaffold;
+let prePLugin;
 let NemoFactory;
 let BaseNemoConfig;
 
@@ -42,6 +43,7 @@ program
   .option('-Z, --scaffold-complex <path>', 'inject a full-featured (complex) example nemo suite under <path>')
   .option('-U, --allow-unknown-args', 'allow command line arguments not specified by Nemo')
   .option('-E, --exit', 'force shutdown of the event loop after test run: nemo will call process.exit')
+  .option('-I, --initiate-pre-plugins', 'Initiate plugins that run before nemo configuration')
   .option('--debug-brk', 'enable node\'s debugger breaking on the first line')
   .option('--inspect', 'activate devtools in chrome')
   .option('--no-timeouts', 'remove timeouts in debug/inspect use case')
@@ -57,6 +59,7 @@ if (program.logging) {
 // load these after the DEBUG var is set
 server = require('../lib/server');
 scaffold = require('../lib/scaffold');
+prePLugin = require('../lib/preplugins');
 NemoFactory = require('../lib/nemo');
 debug = require('debug');
 log = debug('nemo:cli:log');
@@ -77,6 +80,10 @@ if (program.scaffold) {
 if (program.scaffoldComplex) {
   log('launching scaffold-complex');
   return scaffold.complex(program);
+}
+if (program.initiatePrePlugins) {
+    log('initiating plugins');
+    return prePLugin.initPlugins(program);
 }
 log('launching runner');
 NemoFactory.configure({baseDirectory: path.resolve(__dirname, '../config/cli')})
